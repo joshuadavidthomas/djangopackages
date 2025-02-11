@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3.9
+  python: python3.12
 
 exclude: |
     (?x)^(
@@ -12,7 +12,7 @@ exclude: |
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v5.0.0
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
@@ -23,7 +23,7 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/rtts/djhtml
-    rev: '3.0.3'
+    rev: '3.0.7'
     hooks:
       - id: djhtml
         entry: djhtml --tabwidth 4
@@ -32,53 +32,31 @@ repos:
         alias: autoformat
       - id: djjs
         alias: autoformat
-  # - repo: https://github.com/browniebroke/django-codemod
-  #   rev: v1.10.9
-  #   hooks:
-  #     - id: djcodemod
-  #       stages: [manual]
-  #       args: [
-  #         'run',
-  #         '--deprecated-in', '1.9',
-  #         '--deprecated-in', '1.10',
-  #         '--deprecated-in', '1.11',
-  #         '--deprecated-in', '2.0',
-  #         '--deprecated-in', '2.1',
-  #         '--deprecated-in', '2.2',
-  #         '--removed-in', '3.0',
-  #         '--deprecated-in', '3.0',
-  #         '--deprecated-in', '3.1',
-  #         '--removed-in', '4.0',
-  #         '--deprecated-in', '4.1',
-  #       ]
+  - repo: https://github.com/adamchainz/djade-pre-commit
+    rev: 1.3.2
+    hooks:
+      - id: djade
+        args: [--target-version, "5.1"]
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: 1.13.0
+    rev: 1.22.2
     hooks:
       - id: django-upgrade
-        args: [--target-version, "4.1"]
-        alias: autoformat
-  - repo: https://github.com/psf/black
-    rev: 23.1.0
-    hooks:
-      - id: black
+        args: [--target-version, "5.0"]
         alias: autoformat
   - repo: https://github.com/asottile/blacken-docs
-    rev: 1.13.0
+    rev: 1.19.1
     hooks:
       - id: blacken-docs
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: 'v0.0.254'
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 'v0.9.4'
     hooks:
       - id: ruff
+        args: [--fix]
         alias: autoformat
-  # - repo: https://github.com/codespell-project/codespell
-  #   rev: v2.2.2
-  #   hooks:
-  #     - id: codespell
-  #       args: [--write-changes]
-  #       alias: autoformat
-  # - repo: https://github.com/guilatrova/tryceratops
-  #   rev: v1.1.0
-  #   hooks:
-  #     - id: tryceratops
-  #       args: [--ignore, TC101, --ignore, TC200]
+      - id: ruff-format
+        alias: autoformat
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.19.1
+    hooks:
+      - id: pyupgrade
+        args: [--py312-plus]

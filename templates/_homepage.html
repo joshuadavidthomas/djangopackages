@@ -1,15 +1,36 @@
-{% load humanize %}
-{% load i18n %}
-{% load package_tags %}
-{% load emojificate %}
-{% load typogrify_tags %}
+{% load emojificate humanize i18n package_tags typogrify_tags waffle_tags %}
+
+
+{% switch "switch_use_grid_of_the_week" %}
+    <div class="container">
+        <div class="row">
+            {% include "homepage/grid_of_the_week_partial.html" %}
+            {% include "homepage/django_package_of_the_week_partial.html" %}
+            {% switch "switch_use_psa" %}
+                {% include "homepage/public_service_announcement_partial.html" %}
+            {% endswitch %}
+        </div>
+    </div>
+{% endswitch %}
+
+
+{% comment %}
+TODO: Fix this hack
+This is a hack to keep the next set of divs from wrapping up and making the display look funny
+{% endcomment %}
+
+<div class="container">
+    <div class="row">
+    </div>
+</div>
+
 
 <div class="container">
     <div class="row">
         <!-- start Categories panel -->
         {% for category in categories %}
             {% if category.package_count %}
-                <div class="categories col-sm-3 text-center">
+                <div class="text-center categories col-sm-3">
                     <h2 class="panel-title">{{ category.title_plural }} </h2>
                     <p>{{ category.description|widont }}</p>
                     <a href="{% url 'category' category.slug %}" class="btn btn-primary">Show {{ category.title_plural }} ({{ category.package_count|intcomma }})</a>
@@ -20,11 +41,12 @@
     </div>
 </div>
 
+
 <div class="container">
     <div class="row">
         <!-- start python 3 releases -->
         <div class="col-sm-4 col-lg-4">
-            <h2>{% trans "Latest Python 3 Package Releases" %}</h2>
+            <h2>{% translate "Latest Python 3 Package Releases" %}</h2>
 
             <div class="list-group">
                 {% for version in latest_python3 %}
@@ -34,7 +56,7 @@
                             <small>v{{ version.number }}</small>
                         </h4>
                         <p class="list-group-item-text">
-                            {% with version.package.repo_description|truncatewords:25 as short %}
+                            {% with short=version.package.repo_description|truncatewords:25 %}
                                 {% if version.package.repo_description|length > short|length %}
                                     {{ short|slice:"-3"|widont }}...
                                 {% else %}
@@ -54,17 +76,17 @@
 
         <!-- start latest five packages -->
         <div class="col-sm-4 col-lg-4">
-            <h2>{% trans "Latest Five Packages Added" %}</h2>
+            <h2>{% translate "Latest Five Packages Added" %}</h2>
 
             <div class="list-group">
                 {% for package in latest_packages %}
                     <a href="{{ package.get_absolute_url }}" class="list-group-item">
                         <h4 class="list-group-item-heading">
-                            {{ package.title | emojify| emojificate }}
+                            {{ package.title|emojify|emojificate }}
                             {% if package.pypi_version %}<small>v{{ package.pypi_version }}</small>{% endif %}
                         </h4>
                         <p class="list-group-item-text">
-                            {% with package.repo_description|truncatewords:25 as short %}
+                            {% with short=package.repo_description|truncatewords:25 %}
                                 {% if package.repo_description|length > short|length %}
                                     {{ short|slice:"-3" }}...
                                 {% else %}
@@ -74,7 +96,7 @@
                         </p>
                     </a>
                 {% endfor %}
-                <a href="{% url 'latest_packages'%}" class="btn btn-primary btn-block-display">View More</a>
+                <a href="{% url 'latest_packages' %}" class="btn btn-primary btn-block-display">View More</a>
             </div>
 
             {% comment %}
@@ -85,17 +107,17 @@
 
         <!-- start five random packages -->
         <div class="col-sm-4 col-lg-4">
-            <h2>{% trans "Random Five Packages" %}</h2>
+            <h2>{% translate "Random Five Packages" %}</h2>
 
             <div class="list-group">
                 {% for package in random_packages %}
                     <a href="{{ package.get_absolute_url }}" class="list-group-item">
                         <h4 class="list-group-item-heading">
-                            {{ package.title | emojify | emojificate }}
+                            {{ package.title|emojify|emojificate }}
                             {% if package.pypi_version %}<small>v{{ package.pypi_version }}</small>{% endif %}
                         </h4>
                         <p class="list-group-item-text">
-                            {% with package.repo_description|truncatewords:25 as short %}
+                            {% with short=package.repo_description|truncatewords:25 %}
                                 {% if package.repo_description|length > short|length %}
                                     {{ short|slice:"-3" }}...
                                 {% else %}
@@ -114,21 +136,5 @@
         <!-- end five random packages -->
 
     </div>
-    {% comment %}
-    <div class="row">
-          <!-- start GOTW panel -->
-          {% if gotw %}
-            <div class="col-sm-4 col-lg-4">
-                <h2>{% trans "Featured Grid" %}</h2>
-                <h4><a href="{{ gotw.get_absolute_url }}">{{ gotw.title }}</a></h4>
-                <p>{{ gotw.description }}</p>
-                <p>
-                    <strong>{% trans "Packages" %}:</strong> {{ gotw.gridpackage_set.count }}
-                    <strong>{% trans "Features" %}:</strong> {{ gotw.feature_set.count }}
-                </p>
-            </div>
-          {% endif %}
-        <!-- end GOTW panel -->
-    </div>
-    {% endcomment %}
+
 </div>

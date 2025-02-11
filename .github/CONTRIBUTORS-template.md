@@ -8,7 +8,7 @@ accept and merge pull requests.
 <table>
   <tr>
     <th>Name</th>
-    <th>Github</th>
+    <th>GitHub</th>
     <th>Twitter</th>
   </tr>
   {%- for contributor in core_contributors %}
@@ -24,7 +24,7 @@ accept and merge pull requests.
 
 For Django Dash 2010, @pydanny and @audreyr created Django Packages.
 
-They are joined by a host of core developers and contributors. See https://docs.djangopackages.org/en/latest/contributors.html
+They are joined by a host of core developers and contributors. See https://github.com/djangopackages/djangopackages/blob/main/CONTRIBUTORS.md
 
 ## Other Contributors
 
@@ -33,7 +33,7 @@ Listed in alphabetical order.
 <table>
   <tr>
     <th>Name</th>
-    <th>Github</th>
+    <th>GitHub</th>
     <th>Twitter</th>
   </tr>
   {%- for contributor in other_contributors %}

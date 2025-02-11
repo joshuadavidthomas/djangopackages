@@ -8,14 +8,14 @@ accept and merge pull requests.
 <table>
   <tr>
     <th>Name</th>
-    <th>Github</th>
+    <th>GitHub</th>
     <th>Twitter</th>
   </tr>
 </table>
 
 For Django Dash 2010, @pydanny and @audreyr created Django Packages.
 
-They are joined by a host of core developers and contributors. See https://docs.djangopackages.org/en/latest/contributors.html
+They are joined by a host of core developers and contributors. See https://github.com/djangopackages/djangopackages/blob/main/CONTRIBUTORS.md
 
 ## Other Contributors
 
@@ -24,7 +24,7 @@ Listed in alphabetical order.
 <table>
   <tr>
     <th>Name</th>
-    <th>Github</th>
+    <th>GitHub</th>
     <th>Twitter</th>
   </tr>
   <tr>
@@ -140,6 +140,20 @@ Listed in alphabetical order.
     <td></td>
   </tr>
   <tr>
+    <td>Farhan Ali Raza</td>
+    <td>
+      <a href="https://github.com/FarhanAliRaza">FarhanAliRaza</a>
+    </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Felipe de Morais</td>
+    <td>
+      <a href="https://github.com/lipemorais">lipemorais</a>
+    </td>
+    <td>felipedemorais_</td>
+  </tr>
+  <tr>
     <td>Florent Gallaire</td>
     <td>
       <a href="https://github.com/fgallaire">fgallaire</a>
@@ -171,6 +185,13 @@ Listed in alphabetical order.
     <td>Hebert</td>
     <td>
       <a href="https://github.com/hebertjulio">hebertjulio</a>
+    </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>hriprsd</td>
+    <td>
+      <a href="https://github.com/hriprsd">hriprsd</a>
     </td>
     <td></td>
   </tr>
@@ -224,6 +245,13 @@ Listed in alphabetical order.
     <td></td>
   </tr>
   <tr>
+    <td>Jayden Clark</td>
+    <td>
+      <a href="https://github.com/jayden-clark">jayden-clark</a>
+    </td>
+    <td></td>
+  </tr>
+  <tr>
     <td>Jeff Triplett</td>
     <td>
       <a href="https://github.com/jefftriplett">jefftriplett</a>
@@ -241,6 +269,13 @@ Listed in alphabetical order.
     <td>Jonas Obrist</td>
     <td>
       <a href="https://github.com/ojii">ojii</a>
+    </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Josh Thomas</td>
+    <td>
+      <a href="https://github.com/joshuadavidthomas">joshuadavidthomas</a>
     </td>
     <td></td>
   </tr>
@@ -413,6 +448,20 @@ Listed in alphabetical order.
     <td></td>
   </tr>
   <tr>
+    <td>Sayz Lim</td>
+    <td>
+      <a href="https://github.com/sayzlim">sayzlim</a>
+    </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>sheepman4267</td>
+    <td>
+      <a href="https://github.com/sheepman4267">sheepman4267</a>
+    </td>
+    <td></td>
+  </tr>
+  <tr>
     <td>ShreehariVaasishta</td>
     <td>
       <a href="https://github.com/ShreehariVaasishta">ShreehariVaasishta</a>
@@ -467,5 +516,12 @@ Listed in alphabetical order.
       <a href="https://github.com/vaibhav-jain">vaibhav-jain</a>
     </td>
     <td>JaIn10VaIbHaV</td>
+  </tr>
+  <tr>
+    <td>Victoria Cruces</td>
+    <td>
+      <a href="https://github.com/vcruces">vcruces</a>
+    </td>
+    <td></td>
   </tr>
 </table>

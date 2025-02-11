@@ -36,6 +36,7 @@ class PackageAdmin(VersionAdmin, DynamicArrayMixin):
     list_display = [
         "title",
         "score",
+        "pypi_downloads",
         "last_exception_count",
         "date_repo_archived",
         "date_deprecated",
@@ -62,6 +63,7 @@ class PackageAdmin(VersionAdmin, DynamicArrayMixin):
         "supports_python3",
         "supports_python3",
         "usage",
+        "favorite_count",
     ]
     fieldsets = (
         (
@@ -74,6 +76,7 @@ class PackageAdmin(VersionAdmin, DynamicArrayMixin):
                     "repo_url",
                     # "usage",
                     "score",
+                    "favorite_count",
                     "date_repo_archived",
                     "markers",
                     "created_by",
@@ -150,7 +153,7 @@ class PackageExampleAdmin(admin.ModelAdmin):
     ordering = ["-created"]
     raw_id_fields = ["package"]
     readonly_fields = ["created_by"]
-    search_fields = ["title", "created_by__username"]
+    search_fields = ["title", "created_by__username", "package__title"]
 
     @admin.action(description="Mark selected examples to active")
     def set_active_to_true(self, request, queryset):

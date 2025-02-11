@@ -24,7 +24,7 @@ class PackageUpdaterException(Exception):
 
 @click.command()
 @click.option("--limit", default=None, type=int)
-def command(all, limit):
+def command(limit):
     """Updates all the GitHub Packages in the database."""
 
     github = github_login(token=settings.GITHUB_TOKEN)
@@ -36,7 +36,7 @@ def command(all, limit):
         packages = packages[:limit]
 
     for package in packages.iterator():
-        # Simple attempt to deal with Github rate limiting
+        # Simple attempt to deal with GitHub rate limiting
         while True:
             if github.ratelimit_remaining < 50:
                 print(f"github.ratelimit_remaining=={github.ratelimit_remaining}")

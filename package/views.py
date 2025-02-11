@@ -15,10 +15,10 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic.base import TemplateView
+from django_q.tasks import async_task
 from django_tables2 import SingleTableView
 
 from grid.models import Grid
-from homepage.models import Dpotw, Gotw
 from package.forms import (
     DocumentationForm,
     FlaggedPackageForm,
@@ -27,7 +27,18 @@ from package.forms import (
 )
 from package.models import Category, FlaggedPackage, Package, PackageExample
 from package.repos import get_all_repos
-from package.tables import PackageByCategoryTable, PackageTable
+from package.tables import PackageTable
+from searchv2.rules import calc_package_weight
+from searchv2.rules import DeprecatedRule
+from searchv2.rules import DescriptionRule
+from searchv2.rules import DownloadsRule
+from searchv2.rules import ForkRule
+from searchv2.rules import LastUpdatedRule
+from searchv2.rules import RecentReleaseRule
+from searchv2.rules import ScoreRuleGroup
+from searchv2.rules import UsageCountRule
+from searchv2.rules import WatchersRule
+from favorites.models import Favorite
 
 
 def repo_data_for_js():
@@ -101,17 +112,6 @@ def edit_package(request, slug, template_name="package/package_form.html"):
             "action": "edit",
         },
     )
-
-
-@login_required
-def update_package(request, slug):
-    package = get_object_or_404(Package, slug=slug)
-    package.fetch_metadata()
-    package.fetch_commits()
-    package.last_fetched = timezone.now()
-    messages.add_message(request, messages.INFO, "Package updated successfully")
-
-    return HttpResponseRedirect(reverse("package", kwargs={"slug": package.slug}))
 
 
 @login_required
@@ -213,18 +213,46 @@ def confirm_delete_example(request, slug, id):
     return HttpResponseRedirect(reverse("package", kwargs={"slug": slug}))
 
 
-class PackageByCategoryListView(SingleTableView):
-    table_class = PackageByCategoryTable
-    template_name = "package/category.html"
+class PackageListView(TemplateView):
+    template_name = "package/package_list.html"
 
     def get_context_data(self, **kwargs):
+        categories = []
+        for category in Category.objects.annotate(package_count=Count("package")):
+            package_table = PackageTable(
+                Package.objects.active()
+                .filter(category=category)
+                .active()
+                .select_related()
+                .annotate(usage_count=Count("usage"))
+                .order_by("-pypi_downloads", "-repo_watchers", "title")[:9],
+                prefix=f"{category.slug}_",
+                exclude=("last_released",),
+            )
+            element = {
+                "count": category.package_count,
+                "description": category.description,
+                "slug": category.slug,
+                "table": package_table,
+                "title": category.title,
+                "title_plural": category.title_plural,
+            }
+            categories.append(element)
+
         context_data = super().get_context_data(**kwargs)
-        context_data["category"] = get_object_or_404(Category, slug=self.kwargs["slug"])
+        context_data["categories"] = categories
         return context_data
 
+
+class PackageSingleTableMixin(SingleTableView):
+    table_class = PackageTable
+
+    def package_filters(self):
+        return {}
+
     def get_queryset(self):
-        packages = (
-            Package.objects.filter(category__slug=self.kwargs["slug"])
+        return (
+            Package.objects.filter(**self.package_filters())
             .select_related(
                 "category",
                 "created_by",
@@ -233,9 +261,33 @@ class PackageByCategoryListView(SingleTableView):
                 "deprecates_package",
             )
             .annotate(usage_count=Count("usage"))
-            .order_by("-repo_watchers", "title")
+            .order_by("-repo_watchers", "-pypi_downloads", "title")
         )
-        return packages
+
+
+class PackageByCategoryListView(PackageSingleTableMixin):
+    template_name = "package/category.html"
+
+    def package_filters(self):
+        return {"category__slug": self.kwargs["slug"]}
+
+    def get_context_data(self, **kwargs):
+        context_data = super().get_context_data(**kwargs)
+        context_data["category"] = get_object_or_404(Category, slug=self.kwargs["slug"])
+        return context_data
+
+
+class PackageByGridListView(PackageSingleTableMixin):
+    template_name = "package/grid_packages.html"
+    table_class = PackageTable
+
+    def package_filters(self):
+        return {"gridpackage__grid__slug": self.kwargs["slug"]}
+
+    def get_context_data(self, **kwargs):
+        context_data = super().get_context_data(**kwargs)
+        context_data["grid"] = get_object_or_404(Grid, slug=self.kwargs["slug"])
+        return context_data
 
 
 def category(request, slug, template_name="package/category.html"):
@@ -409,42 +461,71 @@ class PackagePython3ListView(SingleTableView):
         return (
             Package.objects.filter(version__supports_python3=True)
             .select_related()
+            .annotate(usage_count=Count("usage"))
             .distinct()
             .order_by("-pypi_downloads", "-repo_watchers", "title")
         )
 
 
-class PackageListView(TemplateView):
-    template_name = "package/package_list.html"
+def package_details_rules(request, slug, template_name="package/package_rules.html"):
+    package = get_object_or_404(
+        Package.objects.select_related("category").prefetch_related("grid_set"),
+        slug=slug,
+    )
 
-    def get_context_data(self, **kwargs):
-        categories = []
-        for category in Category.objects.annotate(package_count=Count("package")):
-            package_table = PackageByCategoryTable(
-                Package.objects.active()
-                .filter(category=category)
-                .active()
-                .select_related()
-                .annotate(usage_count=Count("usage"))
-                .order_by("-pypi_downloads", "-repo_watchers", "title")[:9],
-                prefix=f"{category.slug}_",
-                exclude=["last_released"],
-            )
-            element = {
-                "count": category.package_count,
-                "description": category.description,
-                "slug": category.slug,
-                "table": package_table,
-                "title": category.title,
-                "title_plural": category.title_plural,
-            }
-            categories.append(element)
+    # rules = [
+    #     DeprecatedRule(),
+    #     DescriptionRule(),
+    #     DownloadsRule(),
+    #     ForkRule(),
+    #     LastUpdatedRule(),
+    #     RecentReleaseRule(),
+    #     UsageCountRule(),
+    #     WatchersRule(),
+    # ]
 
-        context_data = super().get_context_data(**kwargs)
-        context_data["categories"] = categories
-        context_data["dpotw"] = Dpotw.objects.get_current()
-        context_data["gotw"] = Gotw.objects.get_current()
-        return context_data
+    group = ScoreRuleGroup(
+        name="Activity Rules",
+        description="Rules related to the package's recent activity",
+        max_score=40,
+        documentation_url=f"{settings.DOCS_URL}/rules/groups/activity",
+        rules=[LastUpdatedRule(), RecentReleaseRule()],
+    )
+
+    rules = [
+        DeprecatedRule(),
+        DescriptionRule(),
+        DownloadsRule(),
+        ForkRule(),
+        # LastUpdatedRule(),  # testing in `ScoreRuleGroup`
+        # RecentReleaseRule(),  # testing in `ScoreRuleGroup`
+        UsageCountRule(),
+        WatchersRule(),
+        group,
+    ]
+
+    package_score = calc_package_weight(
+        package=package,
+        rules=rules,
+        max_score=100,
+    )
+
+    print(json.dumps(package_score, indent=2))
+
+    return render(
+        request,
+        template_name,
+        dict(
+            package=package,
+            package_score=package_score,
+            # pypi_ancient=pypi_ancient,
+            # no_development=no_development,
+            # pypi_no_release=pypi_no_release,
+            # warnings=warnings,
+            latest_version=package.last_released(),
+            repo=package.repo,
+        ),
+    )
 
 
 def package_detail(request, slug, template_name="package/package.html"):
@@ -466,10 +547,13 @@ def package_detail(request, slug, template_name="package/package.html"):
         pypi_ancient = False
         pypi_no_release = False
         warnings = no_development
-
+    is_favorited = False
+    if request.user.is_authenticated:
+        is_favorited = Favorite.objects.filter(
+            favorited_by=request.user, package=package
+        ).exists()
     if request.GET.get("message"):
         messages.add_message(request, messages.INFO, request.GET.get("message"))
-
     return render(
         request,
         template_name,
@@ -481,6 +565,7 @@ def package_detail(request, slug, template_name="package/package.html"):
             warnings=warnings,
             latest_version=package.last_released(),
             repo=package.repo,
+            is_favorited=is_favorited,
         ),
     )
 
@@ -499,23 +584,10 @@ def int_or_0(value):
 
 
 @login_required
-def post_data(request, slug):
-    # if request.method == "POST":
-    # try:
-    #     # TODO Do this this with a form, really. Duh!
-    #     package.repo_watchers = int_or_0(request.POST.get("repo_watchers"))
-    #     package.repo_forks = int_or_0(request.POST.get("repo_forks"))
-    #     package.repo_description = request.POST.get("repo_description")
-    #     package.participants = request.POST.get('contributors')
-    #     package.fetch_commits()  # also saves
-    # except Exception as e:
-    #     print e
-    package = get_object_or_404(Package, slug=slug)
-    package.fetch_pypi_data()
-    package.repo.fetch_metadata(package)
-    package.repo.fetch_commits(package)
-    package.last_fetched = timezone.now()
-    package.save()
+def fetch_package_data(request, slug):
+    package = get_object_or_404(Package.objects.only("slug"), slug=slug)
+    async_task("package.tasks.fetch_package_data_task", package.slug)
+    messages.add_message(request, messages.INFO, "Package data is being refreshed")
     return HttpResponseRedirect(reverse("package", kwargs={"slug": package.slug}))
 
 

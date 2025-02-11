@@ -1,4 +1,4 @@
-from random import sample
+from datetime import date
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -8,7 +8,7 @@ from django.shortcuts import render
 from django.views.generic import TemplateView
 
 from grid.models import Grid
-from homepage.models import PSA, Dpotw, Gotw
+from homepage.models import Gotw, Dpotw, PSA
 from package.models import Category, Commit, Package, Version
 from products.models import Product, Release
 
@@ -26,6 +26,8 @@ class OpenView(TemplateView):
             "total_django_4_0": "Framework :: Django :: 4.0",
             "total_django_4_1": "Framework :: Django :: 4.1",
             "total_django_4_2": "Framework :: Django :: 4.2",
+            "total_django_5_0": "Framework :: Django :: 5.0",
+            "total_django_5_1": "Framework :: Django :: 5.1",
             "total_python_2_7": "Programming Language :: Python :: 2.7",
             "total_python_3": "Programming Language :: Python :: 3",
             "total_python_3_6": "Programming Language :: Python :: 3.6",
@@ -35,6 +37,7 @@ class OpenView(TemplateView):
             "total_python_3_10": "Programming Language :: Python :: 3.10",
             "total_python_3_11": "Programming Language :: Python :: 3.11",
             "total_python_3_12": "Programming Language :: Python :: 3.12",
+            "total_python_3_13": "Programming Language :: Python :: 3.13",
         }
         vcs_providers = {
             "repos_bitbucket": "bitbucket.org",
@@ -172,12 +175,14 @@ class ReadinessDetailView(TemplateView):
         context_data["ready_condition"] = ready_condition
 
         packages = (
-            Package.objects.only("title", "pypi_downloads", "pypi_classifiers", "slug")
+            Package.objects.only(
+                "title", "pypi_downloads", "pypi_classifiers", "slug", "repo_watchers"
+            )
             .filter(pypi_classifiers__contains=pypi_classifier)
             .exclude(
                 Q(title="django") | Q(slug="django")
             )  # TODO: might be worth re-addressing...
-            .order_by("-pypi_downloads")[:limit]
+            .order_by("-repo_watchers", "-pypi_downloads")[:limit]
         )
 
         packages = [package.__dict__ for package in packages]
@@ -204,18 +209,8 @@ class ReadinessDetailView(TemplateView):
         return context_data
 
 
-class SitemapView(TemplateView):
-    template_name = "sitemap.xml"
-    content_type = "text/xml"
-
-    def get_context_data(self, **kwargs):
-        data = super().get_context_data(**kwargs)
-        data["packages"] = Package.objects.all()
-        data["grids"] = Grid.objects.all()
-        return data
-
-
 def homepage(request, template_name="homepage.html"):
+    my_today = date.today()
     if cache.get("categories"):
         categories = cache.get("categories")
     else:
@@ -227,51 +222,50 @@ def homepage(request, template_name="homepage.html"):
         # cache dict for 5 minutes...
         cache.set("categories", categories, timeout=60 * 5)
 
-    # get up to 5 random packages
-    package_list = Package.objects.active().values_list("pk", flat=True)
-    package_count = package_list.count()
-    random_packages = []
-    if package_list.exists():
-        package_ids = set()
+    # Get package count()
+    package_count = Package.objects.active().count()
 
-        # Get 5 random keys
-        package_ids = sample(
-            list(
-                range(1, package_count + 1)
-            ),  # generate a list from 1 to package_count +1
-            min(
-                package_count, 10
-            ),  # Get a sample of the smaller of 10 or the package count
+    # Get the random packages
+    random_packages = (
+        Package.objects.active()
+        .exclude(repo_description__in=[None, ""])
+        .order_by("?")[:5]
+    )
+
+    try:
+        potw = (
+            Dpotw.objects.filter(start_date__lte=my_today, end_date__gte=my_today)
+            .latest()
+            .package
         )
-
-        # Get the random packages
-        random_packages = Package.objects.filter(pk__in=package_ids)[:5]
-
-    try:
-        potw = Dpotw.objects.latest().package
-    except Dpotw.DoesNotExist:
-        potw = None
-    except Package.DoesNotExist:
+    except (Dpotw.DoesNotExist, Package.DoesNotExist):
         potw = None
 
     try:
-        gotw = Gotw.objects.latest().grid
-    except Gotw.DoesNotExist:
-        gotw = None
-    except Grid.DoesNotExist:
+        gotw = (
+            Gotw.objects.filter(start_date__lte=my_today, end_date__gte=my_today)
+            .latest()
+            .grid
+        )
+    except (Gotw.DoesNotExist, Grid.DoesNotExist):
         gotw = None
 
     # Public Service Announcement on homepage
     try:
         psa_body = PSA.objects.latest().body_text
     except PSA.DoesNotExist:
-        psa_body = '<p>There are currently no announcements.  To request a PSA, tweet at <a href="http://twitter.com/open_comparison">@Open_Comparison</a>.</p>'
+        psa_body = None
 
     # Latest Django Packages blog post on homepage
-    latest_packages = Package.objects.active().order_by("-created")[:5]
+    latest_packages = (
+        Package.objects.active()
+        # .exclude(repo_description__in=[None, ""])
+        .order_by("-created")[:5]
+    )
     latest_python3 = (
         Version.objects.filter(supports_python3=True)
         .select_related("package")
+        .exclude(package__repo_description__in=[None, ""])
         .distinct()
         .order_by("-created")[:5]
     )
@@ -281,18 +275,13 @@ def homepage(request, template_name="homepage.html"):
         template_name,
         {
             "categories": categories,
-            "gotw": gotw,
             "latest_packages": latest_packages,
             "latest_python3": latest_python3,
             "package_count": package_count,
+            "random_packages": random_packages,
+            "gotw": gotw,
             "potw": potw,
             "psa_body": psa_body,
-            "random_packages": random_packages,
-            # "": Package.objects.active()
-            # .filter(version__supports_python3=True)
-            # .select_related()
-            # .distinct()
-            # .count(),
         },
     )
 

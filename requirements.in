@@ -1,32 +1,45 @@
 bs4
 cloudflare
-Django<4.2
-# see requirements-to-watch.txt
+crispy-bootstrap3
+croniter
 django-anymail
 django-better-admin-arrayfield
 django-click
-django-crispy-forms<2
+django-crispy-forms<3
 django-debug-toolbar
 django-environ
 django-extensions
 django-htmx
 django-jsonview
 django-maintenance-mode
+django-q2
 django-reversion
 django-secure
 django-structlog
 django-tables2
+django-tailwind-cli
 django-waffle
-djangorestframework<3.13
+Django>5.0
+djangorestframework<3.16
 emoji
 emojificate
 feedparser
+django-template-partials
 # github3.py
-github3.py<1.1
+github3.py<4.1
+heroicons[django]
 jinja2
+looseversion
+markdown-it-py[linkify]
+markdownify
+numpy
+openai
 packaging
-psycopg2-binary
+psutil
+psycopg[binary, pool]
+pydantic
 PyGithub
+pypistats
 python-dateutil
 python-gitlab
 pytz
@@ -34,16 +47,14 @@ requests
 requests-mock
 rich
 sentry-sdk
-social-auth-app-django
+social-auth-app-django==5.4.2
 social-auth-core
+sqlite-utils
 structlog
 trove-classifiers
 Unidecode
 uwsgi
 whitenoise
-
-# Celery
-celery
 
 # Redis support
 redis
@@ -60,7 +71,6 @@ pytest
 pytest-cov
 pytest-django
 pytest-mock
-pytest-vcr
 time-machine
 
 # utils

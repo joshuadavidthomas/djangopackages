@@ -17,9 +17,9 @@ from package.views import (
     flag_remove,
     github_webhook,
     package_detail,
+    package_details_rules,
     package_opengraph_detail,
-    post_data,
-    update_package,
+    fetch_package_data,
     usage,
 )
 
@@ -50,13 +50,8 @@ urlpatterns = [
     ),
     path(
         "<slug:slug>/fetch-data/",
-        view=update_package,
+        view=fetch_package_data,
         name="fetch_package_data",
-    ),
-    path(
-        "<slug:slug>/post-data/",
-        view=post_data,
-        name="post_package_data",
     ),
     path(
         "<slug:slug>/example/add/",
@@ -97,6 +92,11 @@ urlpatterns = [
         "p/<slug:slug>/opengraph/",
         view=package_opengraph_detail,
         name="package_opengraph",
+    ),
+    path(
+        "p/<slug:slug>/rules/",
+        view=package_details_rules,
+        name="package",
     ),
     path(
         "p/<slug:slug>/",

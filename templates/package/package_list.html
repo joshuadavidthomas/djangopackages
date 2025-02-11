@@ -1,15 +1,11 @@
 {% extends "base.html" %}
 
-{% load django_tables2 %}
-{% load humanize %}
-{% load i18n %}
-{% load package_tags %}
-{% load page_metadata_tags %}
+{% load django_tables2 humanize i18n package_tags page_metadata_tags %}
 
 {% block metadata %}
-    {% trans "django reusable apps, sites and tools directory" as trans_title %}
+    {% translate "django reusable apps, sites and tools directory" as trans_title %}
     {% page_metadata page_title=trans_title %}
-{% endblock %}
+{% endblock metadata %}
 
 {% block body %}
     {% for category in categories %}
@@ -23,29 +19,10 @@
                 {% render_table category.table %}
                 <p>
                     <a href="{% url 'category' category.slug %}" class="btn btn-primary">
-                        {% trans "Show " %}{{ category.title_plural }} ({{ category.count|intcomma }})
+                        {% translate "Show " %}{{ category.title_plural }} ({{ category.count|intcomma }})
                     </a>
                 </p>
             </div>
         </div>
     {% endfor %}
-{% endblock %}
-
-{% block extra_body %}
-    <script type="text/javascript">
-        $(function() {
-            $('input#id_q_p').click(function() {
-                $("input#id_q_p").val('');
-            });
-        });
-
-        $('#id_q_p').autocomplete({
-            source: '{% url 'search_packages_autocomplete' %}',
-            minLength: 1,
-            open: function(event, ui) {
-                ac_top = $('.ui-autocomplete').css('top');
-                $('.ui-autocomplete').css({'width': '250px', 'top': ac_top + 10 });
-            }
-        });
-    </script>
-{% endblock %}
+{% endblock body %}

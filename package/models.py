@@ -2,7 +2,6 @@ import json
 import math
 import re
 from datetime import timedelta
-from distutils.version import LooseVersion
 
 import requests
 from dateutil import relativedelta
@@ -19,7 +18,9 @@ from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django_better_admin_arrayfield.models.fields import ArrayField
+from looseversion import LooseVersion
 from packaging.specifiers import SpecifierSet
+from requests.exceptions import HTTPError
 from rich import print
 
 from core.models import BaseModel
@@ -101,6 +102,9 @@ class Package(BaseModel):
         help_text="List of collaborats/participants on the project",
         blank=True,
     )
+    favorite_count = models.IntegerField(
+        _("Favorite"), default=0, help_text="Favorite count"
+    )
     usage = models.ManyToManyField(User, blank=True)
     created_by = models.ForeignKey(
         User, blank=True, null=True, related_name="creator", on_delete=models.SET_NULL
@@ -153,6 +157,12 @@ class Package(BaseModel):
     @property
     def is_deprecated(self):
         return self.date_deprecated is not None
+
+    @property
+    def has_favorite(self):
+        if self.favorite_count > 0:
+            return True
+        return False
 
     def get_pypi_uri(self):
         if self.pypi_name and len(self.pypi_name):
@@ -261,14 +271,16 @@ class Package(BaseModel):
             pypi_json_uri = self.get_pypi_json_uri()
             if pypi_json_uri:
                 response = requests.get(pypi_json_uri)
-                if settings.DEBUG:
-                    if response.status_code not in (200, 404):
-                        print("BOOM!")
-                        print(f"[red]{self}[/red], {response.status_code}")
-                        print(response.content)
-                        return False
+                try:
+                    response.raise_for_status()
+                except HTTPError as exc:
+                    status_code = exc.response.status_code
 
-                if response.status_code == 404:
+                    if status_code not in [404]:
+                        print(f"[red]{self}[/red], {status_code}")
+                        print(response.url)
+                        print(response.content)
+
                     if settings.DEBUG:
                         print(
                             "[red]BOOM! this package probably does not exist on pypi[/red]"
@@ -310,29 +322,33 @@ class Package(BaseModel):
 
                 if "requires_python" in info and info["requires_python"]:
                     self.pypi_requires_python = info["requires_python"]
-                    if self.pypi_requires_python and any(
-                        [
-                            True
-                            for ver in [
-                                "3.11",
-                                "3.10",
-                                "3.9",
-                                "3.8",
-                                "3.7",
-                                "3.6",
-                                "3.5",
-                                "3.4",
-                                "3.3",
-                                "3.2",
-                                "3.1",
-                                "3",
+                    try:
+                        if self.pypi_requires_python and any(
+                            [
+                                True
+                                for ver in [
+                                    "3.12",
+                                    "3.11",
+                                    "3.10",
+                                    "3.9",
+                                    "3.8",
+                                    "3.7",
+                                    "3.6",
+                                    "3.5",
+                                    "3.4",
+                                    "3.3",
+                                    "3.2",
+                                    "3.1",
+                                    "3",
+                                ]
+                                if ver in SpecifierSet(self.pypi_requires_python)
                             ]
-                            if ver in SpecifierSet(self.pypi_requires_python)
-                        ]
-                    ):
-                        self.supports_python3 = True
-                    else:
-                        self.supports_python3 = False
+                        ):
+                            self.supports_python3 = True
+                        else:
+                            self.supports_python3 = False
+                    except Exception as e:
+                        print(e)
 
                 # do we have a license set?
                 if "license" in info and info["license"]:
@@ -366,7 +382,22 @@ class Package(BaseModel):
                 version.save()
 
                 # Calculate total downloads
-                self.pypi_downloads = total_downloads
+                if self.pypi_downloads is None:
+                    self.pypi_downloads = total_downloads
+
+                # get documents_url from pypi
+                if not self.documentation_url:
+                    if docs_url := info["project_urls"].get("Documentation"):
+                        self.documentation_url = docs_url
+
+                    elif docs_url := info["project_urls"].get("Docs"):
+                        self.documentation_url = docs_url
+
+                    elif docs_url := info["project_urls"].get("docs"):
+                        self.documentation_url = docs_url
+
+                    elif docs_url := info["project_urls"].get("documentation"):
+                        self.documentation_url = docs_url
 
                 return True
 
